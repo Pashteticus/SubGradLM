@@ -25,76 +25,79 @@ contest_name = ""
 
 MAX_DF_SIZE = 200
 
-for i, df in enumerate(ds["train"].to_pandas(batch_size=100, batched=True)):
+for df in ds["train"].to_pandas(batch_size=100, batched=True):
     if len(contest_df) >= MAX_DF_SIZE:
         break
-    contest_id = df.iloc[i]["contestId"]
-    if contest_id == current_contest_id:
-        if re.search(pattern, contest_name) is None:
-            continue
-    else:
+    for i in range(len(df)):
+        if len(contest_df) >= MAX_DF_SIZE:
+            break
+        contest_id = df.iloc[i]["contestId"]
+        if contest_id == current_contest_id:
+            if re.search(pattern, contest_name) is None:
+                continue
+        else:
+            r = requests.get(
+                f"https://codeforces.com/api/contest.standings?contestId={contest_id}"
+            )
+            if r.status_code != 200:
+                continue
+            current_contest_id = contest_id
+            contest_name = r.json()["result"]["contest"]["name"]
+            if re.search(pattern, contest_name) is None:
+                continue
+            ranklist_rows = r.json()["result"]["rows"]
+        for ranklist in ranklist_rows:
+            members = ranklist["party"]["members"]
+            if len(members) > 1:
+                continue
+            handle = members[0]["handle"]
+            handle_score[handle] = ranklist["points"]
         r = requests.get(
-            f"https://codeforces.com/api/contest.standings?contestId={contest_id}"
+            f"https://codeforces.com/api/contest.ratingChanges?contestId={contest_id}"
         )
         if r.status_code != 200:
             continue
-        current_contest_id = contest_id
-        contest_name = r.json()["result"]["contest"]["name"]
-        if re.search(pattern, contest_name) is None:
-            continue
-        ranklist_rows = r.json()["result"]["rows"]
-    for ranklist in ranklist_rows:
-        members = ranklist["party"]["members"]
-        if len(members) > 1:
-            continue
-        handle = members[0]["handle"]
-        handle_score[handle] = ranklist["points"]
-    r = requests.get(
-        f"https://codeforces.com/api/contest.ratingChanges?contestId={contest_id}"
-    )
-    if r.status_code != 200:
-        continue
-    rating_changes = r.json()["result"]
-    for rating_change in rating_changes:
-        handle = rating_change["handle"]
-        if handle_score.get(handle) is None:
-            continue
-        new_row3 = pd.Series(
+        rating_changes = r.json()["result"]
+        for rating_change in rating_changes:
+            handle = rating_change["handle"]
+            if handle_score.get(handle) is None:
+                continue
+            new_row3 = pd.Series(
+                [
+                    contest_name,
+                    handle,
+                    handle_score[handle],
+                    rating_change["newRating"],
+                    rating_change["newRating"] - rating_change["oldRating"],
+                ],
+                index=ratings_df.columns,
+            )
+            ratings_df.loc[ratings_df.size] = new_row3
+        tests = df.iloc[i]["test_cases"]
+        problem_name = df.iloc[i]["name"]
+        filename = (
+            "."
+            + f"/tests/{contest_name}_{problem_name}".replace(" ", "_")
+            .replace(",", "")
+            .replace(".", "")
+            + ".json"
+        )
+
+        with open(filename, "w") as output:
+            output.write(json.dumps(tests.tolist()))
+        new_row1 = pd.Series(
             [
                 contest_name,
-                handle,
-                handle_score[handle],
-                rating_change["newRating"],
-                rating_change["newRating"] - rating_change["oldRating"],
+                problem_name,
+                df.iloc[i]["problem-description"],
+                filename,
+                df.iloc[i]["points"],
             ],
-            index=ratings_df.columns,
+            index=contest_df.columns,
         )
-        ratings_df.loc[ratings_df.size] = new_row3
-    tests = df.iloc[i]["test_cases"]
-    problem_name = df.iloc[i]["name"]
-    filename = (
-        "."
-        + f"/tests/{contest_name}_{problem_name}".replace(" ", "_")
-        .replace(",", "")
-        .replace(".", "")
-        + ".json"
-    )
-
-    with open(filename, "w") as output:
-        output.write(json.dumps(tests.tolist()))
-    new_row1 = pd.Series(
-        [
-            contest_name,
-            problem_name,
-            df.iloc[i]["problem-description"],
-            filename,
-            df.iloc[i]["points"],
-        ],
-        index=contest_df.columns,
-    )
-    new_row2 = pd.Series([problem_name, tests], index=tests_df.columns)
-    contest_df.loc[contest_df.size] = new_row1
-    tests_df.loc[tests_df.size] = new_row2
+        new_row2 = pd.Series([problem_name, tests], index=tests_df.columns)
+        contest_df.loc[contest_df.size] = new_row1
+        tests_df.loc[tests_df.size] = new_row2
 
 contest_df = contest_df.reset_index().drop(columns=["index"])
 tests_df = tests_df.reset_index().drop(columns=["index"])
