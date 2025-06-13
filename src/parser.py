@@ -23,7 +23,7 @@ handle_score = {}
 current_contest_id = -1
 contest_name = ""
 
-MAX_DF_SIZE = 200
+MAX_DF_SIZE = 100
 
 for df in ds["train"].to_pandas(batch_size=100, batched=True):
     if len(contest_df) >= MAX_DF_SIZE:
