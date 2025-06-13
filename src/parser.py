@@ -7,8 +7,11 @@ import os
 
 os.makedirs("./tests", exist_ok=True)
 
-ds = load_dataset("MatrixStudio/Codeforces-Python-Submissions")
-
+ds = (
+    load_dataset("MatrixStudio/Codeforces-Python-Submissions")
+    .filter(lambda row: row["contestId"] > 400)
+    .sort("contestId")
+)
 contest_df = pd.DataFrame(
     columns=["Contest", "Name", "Description", "TestFile", "Score"]
 )
@@ -23,6 +26,7 @@ handle_score = {}
 current_contest_id = -1
 contest_name = ""
 
+names = set()
 MAX_DF_SIZE = 200
 
 for df in ds["train"].to_pandas(batch_size=100, batched=True):
@@ -32,10 +36,14 @@ for df in ds["train"].to_pandas(batch_size=100, batched=True):
         if len(contest_df) >= MAX_DF_SIZE:
             break
         contest_id = df.iloc[i]["contestId"]
+        problem_name = df.iloc[i]["name"]
+        if problem_name in names:
+            continue
         if contest_id == current_contest_id:
             if re.search(pattern, contest_name) is None:
                 continue
         else:
+            names.clear()
             r = requests.get(
                 f"https://codeforces.com/api/contest.standings?contestId={contest_id}"
             )
@@ -74,7 +82,7 @@ for df in ds["train"].to_pandas(batch_size=100, batched=True):
             )
             ratings_df.loc[ratings_df.size] = new_row3
         tests = df.iloc[i]["test_cases"]
-        problem_name = df.iloc[i]["name"]
+        names.add(problem_name)
         filename = (
             "."
             + f"/tests/{contest_name}_{problem_name}".replace(" ", "_")
