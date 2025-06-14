@@ -11,7 +11,6 @@ def calculate_seed(contest_participants_ratings: List[int], current_rating: int,
     return seed
 
 def calculate_raw_d(contest_participants_ratings: List[int], current_rating: int, place: int, participant):
-    n = len(contest_participants_ratings)
     seed = calculate_seed(contest_participants_ratings, current_rating, participant)
     mean = math.sqrt(place * seed)
     expected_rating = 0
@@ -43,7 +42,7 @@ def calculate_rating_change(contest_participants_ratings, current_rating: int, p
 
     return int(rating_change)
 
-def parse_ratings(targets, contest_participants_ratings_places: List[tuple[int,int]], current_rating: int, place: int, participant):
+def parse_ratings(contest_participants_ratings_places: List[tuple[int,int]], current_rating: int, place: int, participant):
     n = len(contest_participants_ratings_places)
     contest_participants_ratings_places = list(reversed(sorted(contest_participants_ratings_places)))
     contest_participants_ratings = []
@@ -58,38 +57,35 @@ def parse_ratings(targets, contest_participants_ratings_places: List[tuple[int,i
         if i < s:
             s_sum += d_i
     changes = []
-    for target in targets:
-        rating_change = calculate_rating_change(contest_participants_ratings, target[0], target[1], d_sum, s_sum, n, s, participant)
+    for target in contest_participants_ratings_places:
+        rating_change = calculate_rating_change(contest_participants_ratings, target[0], target[1], d_sum, s_sum, n, s, True)
         changes.append([target[0], target[1], rating_change])
+    rating_change = calculate_rating_change(contest_participants_ratings, current_rating, place, d_sum, s_sum, n, s, participant)
 
-        #final assertions
-        for i in range(len(changes)):
-            for j in range(len(changes)):
-                if i == j:
-                    continue
-                rating_a = changes[i][0]
-                rating_b = changes[j][0]
-                place_a = changes[i][1]
-                place_b = changes[j][1]
-                change_a = changes[i][2]
-                change_b = changes[j][2]
-                if rating_a < rating_b and place_a < place_b:
-                    if rating_a + change_a > rating_b + change_b:
-                        changes[i][2] -= (rating_a + change_a) - (rating_b + change_b)
-                if rating_a < rating_b and place_a > place_b:
-                    if change_a < change_b:
-                        changes[i][2] = change_b
+    #final assertions
+    for j in range(len(changes)):
+        rating_a = current_rating
+        rating_b = changes[j][0]
+        place_a = place
+        place_b = changes[j][1]
+        change_a = rating_change
+        change_b = changes[j][2]
+        if rating_a < rating_b and place_a < place_b:
+            if rating_a + change_a > rating_b + change_b:
+                rating_change -= (rating_a + change_a) - (rating_b + change_b)
+        if rating_a < rating_b and place_a > place_b:
+            if change_a < change_b:
+                rating_change = change_b
+
     #performance calculation
     '''
     l = 0
     r = 20000
     performance = 10000
     expected_change = 1
-    print("started outer")
     while expected_change != 0:
         performance = (l + r) / 2
         expected_change = calculate_rating_change(contest_participants_ratings, performance, place, d_sum, s_sum, n, s)
-        print(f"expected change {expected_change}, performance {performance}")
         if expected_change < 0:
             r = performance
         elif expected_change > 0:
@@ -97,9 +93,9 @@ def parse_ratings(targets, contest_participants_ratings_places: List[tuple[int,i
         else:
             break
     '''
-    return changes#, performance
+    return rating_change#, performance
 
-'''
+"""
 import pandas as pd
 import time
 data = pd.read_csv('DF3.csv')
@@ -115,14 +111,7 @@ for i in range(len(Rating)):
         rp.append((int(Rating[i]), int(place[i]) + 1))
 start = time.time()
 test = rp.copy()
-changes = parse_ratings(test, test, 0, 0, True)
-i = 0
-for change in changes:
-    if change[2] != RatingChange[i]:
-        count += 1
-        sumcount += abs(change[2] - RatingChange[i])
-        print(f"counted rating change: {change[2]} - {RatingChange[i]} - actual for place {change[1]} r {change[0]}. Diff: {abs(change[2] - RatingChange[i])}. Wrong: {count}/{i+1}. Total diff: {sumcount}")
-    i += 1
-#print(f"finished {i+1} out of 3029, time elapsed {time.time()-start}")
-print(f"rating change mistakes: {count}/3029")
-'''
+changes = parse_ratings(test, test[0][0], test[0][1], True)
+print(changes)
+print(RatingChange[0])
+"""
