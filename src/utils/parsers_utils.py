@@ -140,7 +140,7 @@ def save_dataframe(df, filename, need_header=False):
 
 
 def save_dataset(
-    ds, ds_type, filename, format_ds, *args, batch_size=100, need_header=True
+    ds, ds_type, filename, format_ds, *args, batch_size=100000, need_header=True
 ):
     df = create_df(ds_type)
     for df_temp in ds["train"].to_pandas(batch_size=batch_size, batched=True):
@@ -153,6 +153,5 @@ def save_dataset(
             if need_header:
                 need_header = False
             df = create_df(ds_type)
-        break
     if not df.empty:
         save_dataframe(df, filename, need_header)
