@@ -16,7 +16,7 @@ while True:
     try:
         CONTEST_COUNT = int(user_input)
         break
-    except:
+    except ValueError:
         print('Неверный формат, требуется "%d"')
         continue
 
