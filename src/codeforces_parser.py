@@ -1,11 +1,24 @@
 from datasets import load_dataset
+from utils.parsers_utils import save_dataframe
 import requests
 import json
 import re
 import pandas as pd
 import os
+import psutil
 
 os.makedirs("./tests", exist_ok=True)
+
+while True:
+    user_input = input("Введите количество контестов [не больше 200]: ")
+    if not user_input:
+        continue
+    try:
+        CONTEST_COUNT = int(user_input)
+        break
+    except ValueError:
+        print('Неверный формат, требуется "%d"')
+        continue
 
 ds = (
     load_dataset("MatrixStudio/Codeforces-Python-Submissions")
@@ -34,13 +47,34 @@ handle_score = {}
 current_contest_id = -1
 contests = set()
 current_problem = ""
-MAX_CONTESTS_COUNT = int(input())
 is_contest_valid = False
+contest_df.to_csv("contest_df.csv")
+tests_df.to_csv("tests_df.csv")
+ratings_df.to_csv("ratings_df.csv")
 for df in ds["train"].to_pandas(batch_size=100000, batched=True):
-    if len(contests) > MAX_CONTESTS_COUNT:
+    if psutil.virtual_memory().percent > 85.0:
+        save_dataframe(contest_df, "contest_df.csv")
+        save_dataframe(tests_df, "tests_df.csv")
+        save_dataframe(ratings_df, "ratings_df.csv")
+        contest_df = pd.DataFrame(
+            columns=[
+                "Contest",
+                "Name",
+                "Description",
+                "TestFile",
+                "Score",
+                "Solution",
+                "Status",
+            ]
+        )
+        tests_df = pd.DataFrame(columns=["Name", "Tests"])
+        ratings_df = pd.DataFrame(
+            columns=["Contest", "Username", "Score", "Rating", "RatingChange"]
+        )
+    if len(contests) > CONTEST_COUNT:
         break
     for i in range(len(df)):
-        if len(contests) > MAX_CONTESTS_COUNT:
+        if len(contests) > CONTEST_COUNT:
             break
         contest_id = df.iloc[i]["contestId"]
         problem_name = df.iloc[i]["name"]
@@ -125,6 +159,6 @@ contest_df = contest_df.reset_index().drop(columns=["index"])
 tests_df = tests_df.reset_index().drop(columns=["index"])
 ratings_df = ratings_df.reset_index().drop(columns=["index"])
 
-contest_df.to_csv("contest_df.csv")
-tests_df.to_csv("tests_df.csv")
+contest_df.to_csv("contest_df.csv", header=False)
+tests_df.to_csv("tests_df.csv", header=False)
 ratings_df.to_csv("ratings_df.csv")
