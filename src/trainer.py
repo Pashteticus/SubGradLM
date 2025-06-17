@@ -25,6 +25,7 @@ class CustomTrainer():
                 'metric': []
             }
         }
+        total = 0
         for data, target in pbar:
             data = data.to(self.device)
             target = target.to(self.device)
@@ -35,8 +36,11 @@ class CustomTrainer():
             self.optimizer.zero_grad()
             cur_metric = self.metric(target.detach().cpu(), outputs.detach().cpu().argmax(dim=1))
             pbar.set_description(f"Train Loss: {loss.item()} Train metric: {cur_metric}")
-            logs['logs']['loss'].append(loss.item())
-            logs['logs']['metric'].append(cur_metric)
+            logs['logs']['loss'].append(loss.item()*len(data))
+            logs['logs']['metric'].append(cur_metric*len(data))
+            total+=len(data)
+        logs['results']['loss'] = sum(logs['logs']['loss']) / total 
+        logs['results']['metric'] = sum(logs['logs']['metruc']) / total
         return logs
 
     @torch.no_grad()
@@ -53,6 +57,7 @@ class CustomTrainer():
                 'metric': []
             }
         }
+        total = 0
         for data, target in pbar:
             data = data.to(self.device)
             target = target.to(self.device)
@@ -62,6 +67,11 @@ class CustomTrainer():
             pbar.set_description(f"Val Loss: {loss.item()} Val metric: {cur_metric}")
             logs['logs']['loss'].append(loss.item())
             logs['logs']['metric'].append(cur_metric)
+            logs['logs']['loss'].append(loss.item()*len(data))
+            logs['logs']['metric'].append(cur_metric*len(data))
+            total+=len(data)
+        logs['results']['loss'] = sum(logs['logs']['loss']) / total 
+        logs['results']['metric'] = sum(logs['logs']['metruc']) / total
         return logs
 
 
