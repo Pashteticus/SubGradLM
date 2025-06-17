@@ -6,7 +6,6 @@ from tqdm.auto import tqdm
 class CustomTrainer():
     def __init__(self, model, optimizer, criterion, metric, device='cpu'):
         self.model = model.to(device)
-        self.optimizer = optimizer 
         self.criterion = criterion 
         self.metric = metric
         self.device = device
@@ -26,13 +25,13 @@ class CustomTrainer():
         }
         total = 0
         for data, target in pbar:
-            self.optimizer.zero_grad()
+            self.model.optimizer.zero_grad()
             data = data.reshape(data.shape[0], -1).to(self.device)
             target = target.to(self.device)
             outputs = self.model(data)
             loss = self.criterion(outputs, target)
             loss.backward()
-            self.optimizer.step()
+            self.model.optimizer.step()
             cur_metric = self.metric(target.detach().cpu(), outputs.detach().cpu().argmax(dim=1))
             pbar.set_description(f"Train Loss: {loss.item()} Train metric: {cur_metric}")
             logs['logs']['loss'].append(loss.item()*len(data))
