@@ -7,7 +7,7 @@ import torch
 
 class CustomDataset(Dataset):
     def __init__(self, X, y, tokenizer, max_len=512):
-        self.X = [tokenizer(text, return_tensors='pt')['input_ids'] for text in X]
+        self.X = [tokenizer(text, return_tensors='pt', padding='max_length', max_length=max_len, truncation=True)['input_ids'] for text in X.values]
         self.y = y
         self.transformer = LE().fit(self.y)
         self.y = self.transformer.transform(self.y)
@@ -18,11 +18,11 @@ class CustomDataset(Dataset):
         return len(self.X)
     
     def __getitem__(self, ids):
-        return self.X[ids], torch.tensor(self.y[ids])
+        return self.X[ids], torch.tensor(self.y[ids], dtype=torch.long)
 
 
 def load_bigbenchhard(tokenizer, batch_size):
-    data = load_dataset("maveriq/bigbenchhard")['train']
+    data = load_dataset("maveriq/bigbenchhard", "causal_judgement")['train']
     data = pd.DataFrame(data)
     train_data, test_data = train_test_split(data, test_size=0.25, random_state=42)
     train_dataset = CustomDataset(train_data['input'], train_data['target'], tokenizer) 
