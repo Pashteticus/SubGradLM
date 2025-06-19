@@ -4,6 +4,7 @@ import psutil
 import gc
 import re
 import os
+
 class Language(Enum):
     ENG = 1
     RU = 2
@@ -18,6 +19,14 @@ def instructions_filename():
 
 def reasonings_filename():
     return "Reasonings.csv"
+
+def instructions_filename():
+    return "Instructions.csv"
+
+
+def reasonings_filename():
+    return "Reasonings.csv"
+
 
 def language_to_string(language):
     LANGUAGE_TO_STRING = {Language.ENG: "eng", Language.RU: "ru"}
@@ -154,7 +163,10 @@ def save_dataset(
     current_index = index
     save_dataframe(df, filename, need_header=need_header)
     del df
-    for i, batch in enumerate(ds["train"].to_pandas(batch_size=batch_size, batched=True)):
+
+    for i, batch in enumerate(
+        ds["train"].to_pandas(batch_size=batch_size, batched=True)
+    ):
         df_batch = format_ds(batch, *args)
         n = len(df_batch)
 
