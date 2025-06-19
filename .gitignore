@@ -1,3 +1,6 @@
 tests/
 *.csv
 */__pycache__/
+*tar.gz
+experimets/qwenmini
+experimets/tlite

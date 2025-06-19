@@ -5,6 +5,7 @@ class ModelEvaluator():
     def __init__(self, model, tokenizer, device="cpu"):
         self.model = model.to(device)
         self.tokenizer = tokenizer 
+        self.device = device
 
     def __call__(self, messages):
         if messages is not list:
@@ -14,7 +15,7 @@ class ModelEvaluator():
             tokenize=False,
             add_generation_prompt=True
         )
-        model_inputs = self.tokenizer([text], return_tensors="pt").to(device)
+        model_inputs = self.tokenizer([text], return_tensors="pt").to(self.device)
 
         generated_ids = self.model.generate(
             **model_inputs,
@@ -44,5 +45,9 @@ def load_hf_model(model_name, device="cpu"):
         )
     return ModelEvaluator(model, tokenizer, device)
 
-def load_local_model(model_name):
-    pass
+def load_exp_model(model_name):
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModel.from_pretrained(
+            model_name
+        )
+    return model, tokenizer

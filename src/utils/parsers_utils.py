@@ -5,7 +5,6 @@ import gc
 import re
 import os
 
-
 class Language(Enum):
     ENG = 1
     RU = 2
@@ -15,6 +14,11 @@ class DsType(Enum):
     REASONING = 1
     INSTRUCT = 2
 
+def instructions_filename():
+    return "Instructions.csv"
+
+def reasonings_filename():
+    return "Reasonings.csv"
 
 def instructions_filename():
     return "Instructions.csv"
@@ -31,9 +35,7 @@ def language_to_string(language):
 
 def create_df(ds_type):
     if ds_type is DsType.REASONING:
-        return pd.DataFrame(
-            columns=["System", "User", "Reasoning", "Assistant", "Language"]
-        )
+        return pd.DataFrame(columns=["System", "User", "Reasoning", "Assistant", "Language"])
     else:
         return pd.DataFrame(columns=["System", "User", "Assistant", "Language"])
 
@@ -141,12 +143,10 @@ Answer in the following format:
     df = df[["System", "User", "Reasoning", "Assistant", "Language"]]
     return df
 
-
 def save_dataframe(df, filename, need_header=False):
     df.to_csv(filename, mode="a", header=need_header, index=False)
     del df
     gc.collect()
-
 
 def save_dataset(
     ds,
@@ -163,6 +163,7 @@ def save_dataset(
     current_index = index
     save_dataframe(df, filename, need_header=need_header)
     del df
+
     for i, batch in enumerate(
         ds["train"].to_pandas(batch_size=batch_size, batched=True)
     ):
