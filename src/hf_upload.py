@@ -1,5 +1,5 @@
 from datasets import load_dataset, DatasetDict, Features, Value
-from utils.parsers_utils import *
+from utils.parsers_utils import instructions_filename, reasonings_filename
 
 
 instruction_features = Features(
