@@ -3,6 +3,7 @@ import pandas as pd
 import psutil
 import gc
 import re
+import os
 
 
 class Language(Enum):
@@ -13,6 +14,14 @@ class Language(Enum):
 class DsType(Enum):
     REASONING = 1
     INSTRUCT = 2
+
+
+def instructions_filename():
+    return "Instructions.csv"
+
+
+def reasonings_filename():
+    return "Reasonings.csv"
 
 
 def language_to_string(language):
@@ -26,7 +35,7 @@ def create_df(ds_type):
             columns=["System", "User", "Reasoning", "Assistant", "Language"]
         )
     else:
-        pd.DataFrame(columns=["System", "User", "Assistant", "Language"])
+        return pd.DataFrame(columns=["System", "User", "Assistant", "Language"])
 
 
 def order_instruction_df(df):
@@ -134,24 +143,39 @@ Answer in the following format:
 
 
 def save_dataframe(df, filename, need_header=False):
-    df.to_csv(filename, mode="a", header=need_header)
+    df.to_csv(filename, mode="a", header=need_header, index=False)
     del df
     gc.collect()
 
 
 def save_dataset(
-    ds, ds_type, filename, format_ds, *args, batch_size=100000, need_header=True
+    ds,
+    ds_type,
+    filename,
+    format_ds,
+    *args,
+    batch_size=100000,
+    need_header=True,
+    max_file_size=-1,
+    index=0,
 ):
     df = create_df(ds_type)
-    for df_temp in ds["train"].to_pandas(batch_size=batch_size, batched=True):
-        df_temp = format_ds(df_temp, *args)
-        df = pd.concat([df, df_temp])
-        del df_temp
+    current_index = index
+    save_dataframe(df, filename, need_header=need_header)
+    del df
+    for i, batch in enumerate(
+        ds["train"].to_pandas(batch_size=batch_size, batched=True)
+    ):
+        df_batch = format_ds(batch, *args)
+        n = len(df_batch)
+
+        df_batch.index = range(current_index, current_index + n)
+        current_index += n
+        save_dataframe(df_batch, filename)
+        del df_batch, batch
         gc.collect()
-        if psutil.virtual_memory().percent > 85.0:
-            save_dataframe(df, filename, need_header)
-            if need_header:
-                need_header = False
-            df = create_df(ds_type)
-    if not df.empty:
-        save_dataframe(df, filename, need_header)
+        if max_file_size != -1:
+            file_size = os.path.getsize(filename)
+            if file_size > max_file_size:
+                return current_index
+    return current_index
